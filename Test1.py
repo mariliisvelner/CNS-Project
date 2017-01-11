@@ -5,7 +5,7 @@ import numpy as np
 from sklearn import svm
 from sklearn.cross_validation import cross_val_score
 
-DATA_DIR = "<the directory where the .dat files are>"
+DATA_DIR = "<directory of Dog_1_processed>"
 
 os.chdir(DATA_DIR)
 
@@ -49,5 +49,9 @@ data = data[:, 1:]
 # print(target.shape)
 
 clf = svm.SVC(kernel='linear', C=1)
+# clf = svm.SVC(kernel='rbf', C=1)
+# clf = svm.SVC(kernel='poly', C=1)
+# clf = svm.SVC(kernel='sigmoid', C=1)
+# clf = svm.SVC(kernel='precomputed', C=1)
 scores = cross_val_score(clf, data, target, cv=5)
 print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
