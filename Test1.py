@@ -1,57 +1,89 @@
 from numpy import *
 import os
 import numpy as np
-
+import scipy.io as sp
+from sklearn.naive_bayes import GaussianNB
 from sklearn import svm
 from sklearn.cross_validation import cross_val_score
+from sklearn.cross_validation import cross_val_predict
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+import toolbox
 
-DATA_DIR = "<directory of Dog_1_processed>"
+DIRNAME = "C:/Users/Kaur/Documents/CompNeuro/Project/idata/Dog_2"
+os.chdir(DIRNAME)
+subject = 2
+preictals = 42
+interictals = 50
+ch = 9
 
-os.chdir(DATA_DIR)
+"""
+file = sp.loadmat('Dog_2_interictal_segment_0001.mat')
+print(file.keys())
+#print(file)
+print(file['interictal_segment_1'][0][0]['sequence'])
+"""
+
+print('adding preictal segment data')
+# loop 0
+file = sp.loadmat('Dog_{:1d}_preictal_segment_{:04d}.mat'.format(subject, 1))
+data = np.array([toolbox.extaggregate(toolbox.schaggregate(file['preictal_segment_' + str(1)][0][0]['data'], ch))])
+for i in range(1, preictals):
+    file = sp.loadmat('Dog_{:1d}_preictal_segment_{:04d}.mat'.format(subject, i + 1))
+    data = np.append(data, np.array(
+        [toolbox.extaggregate(toolbox.schaggregate(file['preictal_segment_' + str(i + 1)][0][0]['data'], ch))]), axis=0)
+    # print(np.array([file['preictal_segment_'+str(i+1)][0][0]['data']]).shape)
+    # print('ictal:',i+1)
+print(data.shape)
+print('adding interictal segment data')
+for i in range(interictals):  # 100):#480):
+    file = sp.loadmat('Dog_{:1d}_interictal_segment_{:04d}.mat'.format(subject, i + 1))
+    data = np.append(data, np.array(
+        [toolbox.extaggregate(toolbox.schaggregate(file['interictal_segment_' + str(i + 1)][0][0]['data'], ch))]),
+                     axis=0)
+    # orint(np.array([file['interictal_segment_'+str(i+1)][0][0]['data']]).shape)
+    # print('inter: ',i+1)
+print(data.shape)
+
+data = data.reshape(
+    (preictals + interictals, data.shape[1] * data.shape[2]))  # make the data edible for classifiers expecting 2D array
+print('data added')
+# create list of results: 0 means no seizure, 1 means seizure in 55-65 minutes
+# 2 means seizure in 45-55 minutes etc. up to 6 (5-15 minutes)
+print('adding target data')
+
+target = np.zeros(preictals + interictals)
+for i in range(int(preictals / 6)):
+    for j in range(6):  # distinguishes between time-to-seizure
+        target[i * 6 + j] = j
+
+print('target data added')
+print(target.shape)
+
+# Data added, time to divide it for learning and testing
+print('making predictions')
+# Naive Bayes
+clfNB = GaussianNB()
+# linear Support Vector Classifier
+clflSVC = svm.SVC(kernel='linear', C=1)
+# ensemble SVC
+clfeSVC = svm.SVC(kernel='sigmoid', C=1)
+# K-nearest
+clfK = KNeighborsClassifier(4)
+# Random Forest
+clfRF = RandomForestClassifier(max_depth=10, n_estimators=10, max_features=3)
 
 
-def get_data(filename):
-    file = open(filename, 'rb')
-
-    m = np.asscalar(fromfile(file, uint64, 1))
-    n = np.asscalar(fromfile(file, uint64, 1))
-
-    print(m)
-    print(n)
-
-    x = zeros((m, n + 2))
-
-    for i in range(m):
-        x[i] = fromfile(file, double, n + 2)
-        # print(type(x[i])) # x[i] is a tuple with a size of 282
-
-    file.close()
-
-    print(x.shape)
-    print(type(x))
-    return x
-
-# ICTAL - 1. column is 1
-# INTER - 1. column is 2
-# Big question -- what do the numbers in the second column represent?
+# results:
+def score(clf, name):
+    # score=cross_val_score(clf,data,target,cv=3)
+    # print(name,score.mean(),'+-',score.std())
+    score = cross_val_predict(clf, data, target, cv=3)
+    print(score)
 
 
-N = 1000 # TODO: change this
-data_ict = get_data("dog1.ictal.dat")
-data_int = get_data("dog1.inter.dat")[:N, :] # takes the first N rows of the data
-
-# print(x[:, 2:])
-
-data = np.concatenate((data_ict, data_int), axis=0)
-target = data[:, 0]
-data = data[:, 1:]
-# print(data.shape)
-# print(target.shape)
-
-clf = svm.SVC(kernel='linear', C=1)
-# clf = svm.SVC(kernel='rbf', C=1)
-# clf = svm.SVC(kernel='poly', C=1)
-# clf = svm.SVC(kernel='sigmoid', C=1)
-# clf = svm.SVC(kernel='precomputed', C=1)
-scores = cross_val_score(clf, data, target, cv=5)
-print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+score(clfNB, "Naive Bayes")
+# score(clflSVC,"Linear SVC")
+# score(clfeSVC,"Sigmoid SVC")
+score(clfK, "K nearest")
+score(clfRF, "Random Forest")
