@@ -75,8 +75,8 @@ Precision <- function(prediction,real){
 modelPerformance <- cbind.data.frame(F1score = F1score(test$predictions,test$V1),
                                      Sensitivity = Sensitivity(test$predictions,test$V1), 
                                      Precision = Precision(test$predictions,test$V1),
-                                     Type1Error = sum(test$predictions == 0 & test$V1 == 1),
-                                     Type2Error = sum(test$predictions == 1 & test$V1 == 0),
+                                     Type1Error = sum(test$predictions == 1 & test$V1 == 2),
+                                     Type2Error = sum(test$predictions == 2 & test$V1 == 1),
                                      Date = Sys.time())
 
 modelPerformance
