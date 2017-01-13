@@ -43,9 +43,9 @@ rm(regular_train.hex, sampleIdx, nonseizure, preseizure)
 
 # Split to 75% train and 25% test
 trainIdx <- base::sample(nrow(features_ae), ceiling(nrow(features_ae)*0.75))
-train <- dataAll[trainIdx,]
-test <- dataAll[-trainIdx,]
-predictors <- colnames(dataAll[,-101])
+train <- features_ae[trainIdx,]
+test <- features_ae[-trainIdx,]
+predictors <- colnames(features_ae[,-101])
 
 # Send data to cluster and train the random forest
 train.hex <- as.h2o(train)
